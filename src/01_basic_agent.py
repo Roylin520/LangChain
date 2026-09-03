@@ -18,7 +18,7 @@ from langchain.agents import create_agent
 
 load_dotenv()
 
-MODEL_NAME = os.getenv("MODEL_NAME", "openai:gpt-5.4-mini")
+MODEL_NAME = os.getenv("MODEL_NAME", "ollama:nemotron-3-nano:4b")
 
 _ALLOWED_BIN_OPS: dict[type[ast.operator], Any] = {
     ast.Add: operator.add,

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 迴圈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<style>
+/* ─── tokens：淺色為基準，深色只覆寫變數 ─────────────────── */
+:root{
+  --ground:#E8ECEE;      /* 冷調紙灰，非暖奶油 */
+  --surface:#FFFFFF;
+  --surface-sunk:#F1F4F5;
+  --ink:#131A21;
+  --ink-soft:#41525C;
+  --ink-mute:#6C7D87;
+  --rule:#D0D8DC;
+  --rule-soft:#E1E7EA;
+  --model:#2F6E8F;       /* 模型節點：鋼藍 */
+  --model-wash:#DDEAF1;
+  --tool:#A5612C;        /* 工具節點：焦琥珀 */
+  --tool-wash:#F3E5D6;
+  --exit:#4B7A5A;        /* 離開迴圈 */
+  --exit-wash:#DEEBE2;
+  --code-bg:#F1F4F5;
+  --shadow:0 1px 2px rgba(19,26,33,.06), 0 8px 24px -12px rgba(19,26,33,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1418;
+    --surface:#151D22;
+    --surface-sunk:#111a1f;
+    --ink:#DDE4E8;
+    --ink-soft:#A7B6BE;
+    --ink-mute:#7C8D97;
+    --rule:#26333A;
+    --rule-soft:#1D272D;
+    --model:#6BB0D2;
+    --model-wash:#16303D;
+    --tool:#D99A5B;
+    --tool-wash:#3A2916;
+    --exit:#7FB894;
+    --exit-wash:#17301F;
+    --code-bg:#111A1F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1418; --surface:#151D22; --surface-sunk:#111a1f;
+  --ink:#DDE4E8; --ink-soft:#A7B6BE; --ink-mute:#7C8D97;
+  --rule:#26333A; --rule-soft:#1D272D;
+  --model:#6BB0D2; --model-wash:#16303D;
+  --tool:#D99A5B; --tool-wash:#3A2916;
+  --exit:#7FB894; --exit-wash:#17301F;
+  --code-bg:#111A1F;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC","Hiragino Sans TC",sans-serif;
+  font-size:17px;
+  line-height:1.85;
+  letter-spacing:.01em;
+}
+code,pre,.mono{
+  font-family:"JetBrains Mono","Cascadia Mono",Consolas,"Noto Sans TC",monospace;
+  font-variant-ligatures:none;
+}
+
+/* ─── 版面：中央 66ch 文欄，寬物件跨欄 ─────────────────── */
+.page{
+  display:grid;
+  grid-template-columns:1fr min(66ch,calc(100% - 2.5rem)) 1fr;
+  row-gap:0;
+  padding-block:0 5rem;
+}
+.page > *{grid-column:2}
+.page > .wide{
+  grid-column:1 / -1;
+  width:min(calc(100% - 2.5rem),58rem);
+  margin-inline:auto;
+}
+
+/* ─── 頁首 ─────────────────── */
+.masthead{
+  grid-column:1 / -1;
+  border-bottom:1px solid var(--rule);
+  background:var(--surface);
+  padding:3.5rem 1.25rem 2.75rem;
+  margin-bottom:3rem;
+}
+.masthead-inner{width:min(calc(100% - 0rem),58rem);margin-inline:auto}
+.eyebrow{
+  font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-mute);font-weight:500;margin:0 0 1rem;
+}
+h1{
+  font-family:"Noto Serif TC",Georgia,"Microsoft JhengHei",serif;
+  font-weight:700;
+  font-size:clamp(2.1rem,5.5vw,3.1rem);
+  line-height:1.25;
+  letter-spacing:.005em;
+  margin:0 0 1rem;
+  text-wrap:balance;
+}
+.standfirst{
+  font-size:1.125rem;color:var(--ink-soft);margin:0;max-width:52ch;
+  text-wrap:pretty;
+}
+.masthead dl{
+  display:flex;flex-wrap:wrap;gap:.5rem 2.25rem;
+  margin:2rem 0 0;padding-top:1.5rem;border-top:1px solid var(--rule-soft);
+  font-size:.8125rem;
+}
+.masthead dt{color:var(--ink-mute);margin:0}
+.masthead dd{margin:0 1.5rem 0 .5rem;color:var(--ink-soft);font-weight:500}
+.masthead div.pair{display:flex}
+
+/* ─── 標題階層 ─────────────────── */
+h2{
+  font-family:"Noto Serif TC",Georgia,"Microsoft JhengHei",serif;
+  font-size:1.6rem;font-weight:700;line-height:1.4;
+  margin:3.5rem 0 1rem;text-wrap:balance;
+}
+h2 .num{
+  font-family:"JetBrains Mono",monospace;
+  font-size:.8rem;font-weight:400;color:var(--ink-mute);
+  display:block;letter-spacing:.1em;margin-bottom:.4rem;
+}
+h3{font-size:1.05rem;font-weight:700;margin:2.25rem 0 .5rem;color:var(--ink)}
+p{margin:0 0 1.1rem}
+a{color:var(--model)}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--model-wash) 62%);padding:0 .1em}
+
+/* ─── 定義句 ─────────────────── */
+.thesis{
+  border-left:3px solid var(--model);
+  background:var(--surface);
+  padding:1.35rem 1.5rem;
+  margin:1.5rem 0 2rem;
+  box-shadow:var(--shadow);
+}
+.thesis p{margin:0;font-size:1.12rem;font-weight:500;line-height:1.75}
+.thesis p + p{margin-top:.75rem;font-size:1rem;font-weight:400;color:var(--ink-soft)}
+
+/* ─── 破除誤解 ─────────────────── */
+.myths{list-style:none;padding:0;margin:1.5rem 0 0;display:flex;flex-direction:column;gap:1px;background:var(--rule-soft)}
+.myths li{background:var(--surface);padding:1.1rem 1.35rem;display:flex;gap:1rem;align-items:flex-start}
+.myths .x{
+  color:var(--tool);font-weight:700;font-size:.8125rem;letter-spacing:.08em;
+  flex:0 0 auto;padding-top:.28rem;font-family:"JetBrains Mono",monospace;
+}
+.myths p{margin:0;font-size:.98rem}
+.myths p + p{margin-top:.4rem;color:var(--ink-soft);font-size:.92rem}
+
+/* ─── 圖 ─────────────────── */
+figure{margin:2rem 0;background:var(--surface);border:1px solid var(--rule);padding:1.5rem 1.25rem 1.1rem;box-shadow:var(--shadow)}
+figure svg{display:block;width:100%;height:auto}
+figcaption{
+  font-size:.8125rem;color:var(--ink-mute);margin-top:1.1rem;
+  padding-top:.9rem;border-top:1px solid var(--rule-soft);line-height:1.7;
+}
+
+/* ─── 程式碼 ─────────────────── */
+pre{
+  background:var(--code-bg);
+  border:1px solid var(--rule-soft);
+  padding:1.1rem 1.25rem;
+  margin:1.25rem 0;
+  overflow-x:auto;
+  font-size:.84rem;
+  line-height:1.75;
+  color:var(--ink-soft);
+  tab-size:2;
+}
+pre b{color:var(--ink);font-weight:700}
+.cm{color:var(--ink-mute)}
+.st{color:var(--tool)}
+.kw{color:var(--model);font-weight:700}
+p code,li code,td code,figcaption code,dd code{
+  background:var(--code-bg);border:1px solid var(--rule-soft);
+  padding:.08em .38em;font-size:.85em;white-space:nowrap;
+}
+.srcref{
+  display:block;font-size:.75rem;color:var(--ink-mute);
+  font-family:"JetBrains Mono",monospace;margin:0 0 .4rem;letter-spacing:.02em;
+}
+
+/* ─── 訊息軌跡 ─────────────────── */
+.trace{border:1px solid var(--rule);background:var(--surface);margin:1.5rem 0;box-shadow:var(--shadow)}
+.trace-row{display:grid;grid-template-columns:3.25rem 1fr;border-bottom:1px solid var(--rule-soft)}
+.trace-row:last-child{border-bottom:0}
+.trace-idx{
+  font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--ink-mute);
+  padding:1.15rem 0 1.15rem 1.1rem;font-variant-numeric:tabular-nums;
+  border-right:1px solid var(--rule-soft);
+}
+.trace-body{padding:1.15rem 1.25rem;min-width:0}
+.role{
+  display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.72rem;
+  letter-spacing:.06em;padding:.16rem .5rem;margin-bottom:.6rem;font-weight:700;
+}
+.role.human{background:var(--surface-sunk);color:var(--ink-soft);border:1px solid var(--rule)}
+.role.ai{background:var(--model-wash);color:var(--model);border:1px solid transparent}
+.role.tool{background:var(--tool-wash);color:var(--tool);border:1px solid transparent}
+.trace-content{font-size:.95rem;margin:0;word-break:break-word}
+.trace-content.empty{color:var(--ink-mute);font-family:"JetBrains Mono",monospace;font-size:.85rem}
+.trace-json{
+  font-family:"JetBrains Mono",monospace;font-size:.78rem;line-height:1.7;
+  background:var(--code-bg);border:1px solid var(--rule-soft);
+  padding:.7rem .85rem;margin-top:.7rem;overflow-x:auto;color:var(--ink-soft);
+}
+.idtag{
+  font-family:"JetBrains Mono",monospace;font-size:.72rem;
+  background:var(--tool-wash);color:var(--tool);padding:.08em .4em;
+  border-bottom:2px solid var(--tool);
+}
+.note{
+  display:block;margin-top:.65rem;font-size:.8125rem;color:var(--ink-mute);
+  padding-left:.85rem;border-left:2px solid var(--rule);line-height:1.7;
+}
+
+/* ─── 路徑條 ─────────────────── */
+.path{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;
+  font-family:"JetBrains Mono",monospace;font-size:.82rem;
+  background:var(--surface-sunk);border:1px solid var(--rule-soft);
+  padding:.85rem 1rem;margin:1.25rem 0;
+}
+.path span{padding:.1rem .45rem}
+.path .n-model{background:var(--model-wash);color:var(--model);font-weight:700}
+.path .n-tools{background:var(--tool-wash);color:var(--tool);font-weight:700}
+.path .arrow{color:var(--ink-mute)}
+
+/* ─── 對照：函式 → schema ─────────────────── */
+.derive{
+  display:grid;gap:1px;background:var(--rule-soft);
+  border:1px solid var(--rule);margin:1.5rem 0;
+}
+@media (min-width:44rem){.derive{grid-template-columns:1fr 1fr}}
+.derive > div{background:var(--surface);padding:1.1rem 1.25rem}
+.derive h4{
+  margin:0 0 .7rem;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-mute);font-weight:500;
+}
+.derive pre{margin:0;border:0;padding:0;background:transparent;font-size:.79rem}
+.derive-map{
+  grid-column:1 / -1;background:var(--surface-sunk);padding:1rem 1.25rem;
+  font-size:.86rem;display:flex;flex-direction:column;gap:.35rem;
+}
+.derive-map div{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.derive-map b{font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--tool);font-weight:700;flex:0 0 auto}
+.derive-map span{color:var(--ink-soft)}
+
+/* ─── 逐行解說 ─────────────────── */
+.walk{margin:1.5rem 0;border-top:1px solid var(--rule)}
+.walk-item{
+  display:grid;grid-template-columns:6.5rem 1fr;gap:0 1.25rem;
+  padding:1.25rem 0;border-bottom:1px solid var(--rule-soft);
+}
+@media (max-width:36rem){.walk-item{grid-template-columns:1fr;gap:.35rem}}
+.walk-line{
+  font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-mute);
+  padding-top:.25rem;font-variant-numeric:tabular-nums;
+}
+.walk-body p{margin:0;font-size:.95rem}
+.walk-body p:first-child{font-weight:700;margin-bottom:.3rem}
+.walk-body p + p{color:var(--ink-soft)}
+
+/* ─── 參數表 ─────────────────── */
+.tablewrap{overflow-x:auto;margin:1.5rem 0;border:1px solid var(--rule);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.875rem}
+th,td{text-align:left;padding:.7rem 1rem;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{
+  font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);
+  font-weight:500;background:var(--surface-sunk);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.p{font-family:"JetBrains Mono",monospace;font-size:.82rem;white-space:nowrap;color:var(--ink)}
+td.used{color:var(--model);font-weight:700}
+.chip{
+  font-family:"JetBrains Mono",monospace;font-size:.7rem;padding:.1rem .4rem;
+  letter-spacing:.04em;white-space:nowrap;
+}
+.chip.yes{background:var(--model-wash);color:var(--model);font-weight:700}
+.chip.no{background:var(--surface-sunk);color:var(--ink-mute);border:1px solid var(--rule)}
+
+/* ─── 實驗 ─────────────────── */
+.labs{list-style:none;padding:0;margin:1.5rem 0;counter-reset:lab}
+.labs li{
+  border-left:2px solid var(--exit);padding:.15rem 0 .15rem 1.15rem;margin-bottom:1.5rem;
+}
+.labs h3{margin:0 0 .3rem;font-size:1rem}
+.labs p{margin:0;font-size:.94rem;color:var(--ink-soft)}
+.labs .expect{
+  display:block;margin-top:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.78rem;color:var(--exit);
+}
+
+/* ─── 故障排除 ─────────────────── */
+.faults{margin:1.5rem 0;display:flex;flex-direction:column;gap:1px;background:var(--rule-soft);border:1px solid var(--rule)}
+.faults > div{background:var(--surface);padding:1.15rem 1.35rem}
+.faults .err{
+  font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--tool);
+  display:block;margin-bottom:.5rem;word-break:break-word;line-height:1.6;
+}
+.faults p{margin:0;font-size:.93rem;color:var(--ink-soft)}
+.faults p strong{color:var(--ink)}
+
+footer{
+  margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+  font-size:.8125rem;color:var(--ink-mute);line-height:1.8;
+}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--model);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <p class="eyebrow">LangChain v1 · Day 1 Lab</p>
+      <h1>Agent 迴圈</h1>
+      <p class="standfirst">Agent 不是更聰明的模型，是一個「呼叫模型 → 執行工具 → 把結果餵回模型」的迴圈——而迴圈要跑幾輪，由模型自己決定。</p>
+      <dl>
+        <div class="pair"><dt>範例</dt><dd>src/01_basic_agent.py</dd></div>
+        <div class="pair"><dt>版本</dt><dd>langchain 1.3.18</dd></div>
+        <div class="pair"><dt>模型</dt><dd>ollama:nemotron-3-nano:4b</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <h2><span class="num">01</span>先把定義釘死</h2>
+
+  <div class="thesis">
+    <p>Agent＝模型與工具之間的一個受控迴圈。程式負責執行工具、維護對話；模型負責決定「還要不要再呼叫工具」。</p>
+    <p>這是 agent 跟一般 LLM 呼叫唯一的本質差別。普通呼叫是「輸入 → 模型 → 輸出」，一次結束；agent 讓模型在回話時可以說「我還不能回答，先幫我執行這個函式」，程式跑完把結果貼回對話，再問一次——直到模型不再要求工具。</p>
+  </div>
+
+  <p>教這一段時，有兩個誤解一定要先拆掉，否則後面談權限與安全會全部歪掉。</p>
+
+  <ul class="myths">
+    <li>
+      <span class="x">誤</span>
+      <div>
+        <p>「Agent 是更聰明的模型。」</p>
+        <p>模型完全沒變。同一個 <code>nemotron-3-nano:4b</code>，換掉外面那圈控制流程就從聊天機器人變成 agent。變的是流程，不是模型。</p>
+      </div>
+    </li>
+    <li>
+      <span class="x">誤</span>
+      <div>
+        <p>「Agent 會自己執行程式。」</p>
+        <p>模型<strong>只能輸出一段 JSON</strong>，說明它想呼叫哪個函式、帶什麼參數。真正執行 Python 的是 LangChain 的程式碼，在你的機器上、用你的權限。模型從頭到尾沒有執行能力。</p>
+      </div>
+    </li>
+  </ul>
+
+  <h2><span class="num">02</span><code>create_agent</code> 造出來的是一張圖</h2>
+
+  <p>這行 <code>create_agent(...)</code> 回傳的<em>不是</em>一個 Agent 物件，而是一張編譯好的 LangGraph 狀態圖（<code>CompiledStateGraph</code>）。把它的節點與邊印出來，就是下面這張圖——不是示意圖，是實際結構。</p>
+
+  <figure class="wide">
+    <svg viewBox="0 32 620 245" role="img" aria-labelledby="graphtitle graphdesc">
+      <title id="graphtitle">Agent 狀態圖</title>
+      <desc id="graphdesc">START 進入 model 節點；model 若產生 tool_calls 就前往 tools 節點，tools 執行後回到 model；model 若沒有 tool_calls 則前往 END。</desc>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-mute)"></path>
+        </marker>
+      </defs>
+
+      <!-- edges -->
+      <path d="M114,110 L184,110" fill="none" stroke="var(--ink-mute)" stroke-width="1.5" marker-end="url(#ah)"></path>
+      <path d="M308,94 C 345,60 375,60 410,94" fill="none" stroke="var(--ink-mute)" stroke-width="1.5" marker-end="url(#ah)"></path>
+      <path d="M412,126 C 375,160 345,160 310,126" fill="none" stroke="var(--ink-mute)" stroke-width="1.5" marker-end="url(#ah)"></path>
+      <path d="M250,138 L250,215" fill="none" stroke="var(--ink-mute)" stroke-width="1.5" marker-end="url(#ah)"></path>
+
+      <!-- edge labels -->
+      <text x="359" y="52" text-anchor="middle" fill="var(--ink-soft)" font-family="JetBrains Mono, monospace" font-size="12.5">有 tool_calls</text>
+      <text x="384" y="182" text-anchor="middle" fill="var(--ink-soft)" font-family="JetBrains Mono, monospace" font-size="12.5">結果 append 回 messages</text>
+      <text x="238" y="181" text-anchor="end" fill="var(--ink-soft)" font-family="JetBrains Mono, monospace" font-size="12.5">沒有 tool_calls</text>
+
+      <!-- START -->
+      <rect x="30" y="93" width="84" height="34" rx="17" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.5"></rect>
+      <text x="72" y="115" text-anchor="middle" fill="var(--ink-mute)" font-family="JetBrains Mono, monospace" font-size="12.5">__start__</text>
+
+      <!-- model -->
+      <rect x="192" y="82" width="116" height="56" rx="3" fill="var(--model-wash)" stroke="var(--model)" stroke-width="2"></rect>
+      <text x="250" y="107" text-anchor="middle" fill="var(--model)" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700">model</text>
+      <text x="250" y="125" text-anchor="middle" fill="var(--model)" font-size="11.5">呼叫模型</text>
+
+      <!-- tools -->
+      <rect x="412" y="82" width="116" height="56" rx="3" fill="var(--tool-wash)" stroke="var(--tool)" stroke-width="2"></rect>
+      <text x="470" y="107" text-anchor="middle" fill="var(--tool)" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700">tools</text>
+      <text x="470" y="125" text-anchor="middle" fill="var(--tool)" font-size="11.5">執行 Python 函式</text>
+
+      <!-- END -->
+      <rect x="208" y="217" width="84" height="34" rx="17" fill="var(--surface)" stroke="var(--rule)" stroke-width="1.5"></rect>
+      <text x="250" y="239" text-anchor="middle" fill="var(--ink-mute)" font-family="JetBrains Mono, monospace" font-size="12.5">__end__</text>
+    </svg>
+    <figcaption>節點與邊取自 <code>agent.get_graph()</code>，非手繪示意。<code>model → tools</code> 與 <code>model → __end__</code> 是<strong>條件邊</strong>，也就是「模型自己決定」的那個分岔點；<code>tools → model</code> 是無條件的回程。</figcaption>
+  </figure>
+
+  <h3>迴圈的結束條件只有一行</h3>
+
+  <p>分岔判斷寫在 <code>langchain/agents/factory.py</code>。原始碼的註解自己講得很白——這就是 agent 迴圈的經典結束條件，沒有別的魔法：</p>
+
+  <pre><span class="srcref">factory.py:1952-1955</span><span class="cm"># 3. If the model hasn't called any tools, exit the loop
+# this is the classic exit condition for an agent loop</span>
+<span class="kw">if</span> len(last_ai_message.tool_calls) == <b>0</b>:
+    <span class="kw">return</span> end_destination</pre>
+
+  <p>換句話說：<strong>每一輪模型回話後，程式只檢查一件事——這則 AI 訊息裡有沒有 <code>tool_calls</code>。</strong>有就去 <code>tools</code> 節點，沒有就結束。</p>
+
+  <h2><span class="num">03</span>真的跑一次，裡面長什麼樣</h2>
+
+  <p>把 <code>agent.invoke()</code> 回傳的完整訊息序列印出來。問題是「請計算 18 * (23 + 7)，並用一句話說明。」，最後產生 <strong>4 則訊息</strong>：</p>
+
+  <div class="trace wide">
+    <div class="trace-row">
+      <div class="trace-idx">[0]</div>
+      <div class="trace-body">
+        <span class="role human">HumanMessage</span>
+        <p class="trace-content">請計算 18 * (23 + 7)，並用一句話說明。</p>
+      </div>
+    </div>
+    <div class="trace-row">
+      <div class="trace-idx">[1]</div>
+      <div class="trace-body">
+        <span class="role ai">AIMessage</span>
+        <p class="trace-content empty">content = ''　　← 空字串</p>
+        <div class="trace-json">[{"name": "safe_calculate",<br>&nbsp;&nbsp;"args": {"expression": "18 * (23 + 7)"},<br>&nbsp;&nbsp;"id": <span class="idtag">6443b657-30ee-439b-be9e-494bdeaef0b2</span>,<br>&nbsp;&nbsp;"type": "tool_call"}]</div>
+        <span class="note">模型這一輪一個字都沒說。它整個回應就是「我要呼叫這個工具」。這證明模型的輸出不只是文字——<code>content</code> 與 <code>tool_calls</code> 是兩個並存的欄位。</span>
+      </div>
+    </div>
+    <div class="trace-row">
+      <div class="trace-idx">[2]</div>
+      <div class="trace-body">
+        <span class="role tool">ToolMessage</span>
+        <p class="trace-content mono">540.0</p>
+        <div class="trace-json">tool_call_id = <span class="idtag">6443b657-30ee-439b-be9e-494bdeaef0b2</span><br>name = "safe_calculate"</div>
+        <span class="note">這則的 <code>tool_call_id</code> 跟上一則的 <code>id</code> 一模一樣。當模型一次要求呼叫三個工具時，就是靠這個 id 把每個結果對回它自己的請求。</span>
+      </div>
+    </div>
+    <div class="trace-row">
+      <div class="trace-idx">[3]</div>
+      <div class="trace-body">
+        <span class="role ai">AIMessage</span>
+        <p class="trace-content">18 × (23 + 7) = 540。計算過程是先把括號內的 23 + 7 算成 30，然後 18 × 30 等於 540。</p>
+        <span class="note">這一輪模型看到的對話裡已經多了「工具回傳 540.0」，它才據此寫出答案。沒有 <code>tool_calls</code> → 迴圈結束。</span>
+      </div>
+    </div>
+  </div>
+
+  <p>對照第 02 節那張圖，實際走過的路徑是：</p>
+
+  <div class="path">
+    <span>__start__</span><span class="arrow">→</span>
+    <span class="n-model">model</span><span class="arrow">→</span>
+    <span class="n-tools">tools</span><span class="arrow">→</span>
+    <span class="n-model">model</span><span class="arrow">→</span>
+    <span>__end__</span>
+  </div>
+
+  <p><code>model</code> 節點被執行了<strong>兩次</strong>，也就是對模型發了兩次請求。這點在算成本時很重要：一次 agent 呼叫不等於一次模型呼叫。</p>
+
+  <p>另外，整個 state 印出來只有 <code>['messages']</code> 一個 key——因為這個範例沒有用到 <code>state_schema</code>、<code>response_format</code> 或 <code>checkpointer</code>。</p>
+
+  <h2><span class="num">04</span>模型怎麼「知道」有這個工具</h2>
+
+  <p>程式裡只寫了 <code>tools=[safe_calculate]</code>，傳進去一個普通 Python 函式。LangChain 會把它轉成 JSON Schema 送給模型。左邊是你寫的，右邊是模型真正收到的：</p>
+
+  <div class="derive wide">
+    <div>
+      <h4>你寫的 Python</h4>
+      <pre><span class="kw">def</span> <b>safe_calculate</b>(<b>expression</b>: str) -&gt; str:
+    <span class="st">"""Calculate a simple arithmetic
+    expression, such as '3 * (5 + 2)'."""</span>
+    ...</pre>
+    </div>
+    <div>
+      <h4>模型收到的 schema</h4>
+      <pre>{
+  <span class="st">"name"</span>: <span class="st">"safe_calculate"</span>,
+  <span class="st">"description"</span>: <span class="st">"Calculate a simple
+     arithmetic expression, such as
+     '3 * (5 + 2)'."</span>,
+  <span class="st">"parameters"</span>: {
+    <span class="st">"properties"</span>: {
+      <span class="st">"expression"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}},
+    <span class="st">"required"</span>: [<span class="st">"expression"</span>],
+    <span class="st">"type"</span>: <span class="st">"object"</span>}}</pre>
+    </div>
+    <div class="derive-map">
+      <div><b>name</b><span>← 函式名稱</span></div>
+      <div><b>description</b><span>← docstring，逐字照抄</span></div>
+      <div><b>parameters</b><span>← 型別註記 <code>expression: str</code></span></div>
+    </div>
+  </div>
+
+  <p><strong>所以 docstring 不是註解，是給模型看的規格書。</strong>docstring 寫得爛，模型就會挑錯工具或給錯參數格式。這裡的 docstring 特地附上 <code>'3 * (5 + 2)'</code> 這個範例，就是在示範該傳什麼格式；型別註記漏寫，schema 裡的 <code>type</code> 也會跟著失準。</p>
+
+  <h2><span class="num">05</span>程式逐段</h2>
+
+  <div class="walk">
+    <div class="walk-item">
+      <div class="walk-line">L19、L21</div>
+      <div class="walk-body">
+        <p><code>load_dotenv()</code> ＋ <code>os.getenv("MODEL_NAME", ...)</code></p>
+        <p>把 <code>.env</code> 讀進環境變數，金鑰不落在程式碼裡。<code>MODEL_NAME</code> 的格式是 <code>provider:model</code>，LangChain 會依前綴去找對應的 provider 套件——所以 <code>ollama:</code> 開頭就必須裝 <code>langchain-ollama</code>，否則初始化就失敗。</p>
+      </div>
+    </div>
+    <div class="walk-item">
+      <div class="walk-line">L23–L47</div>
+      <div class="walk-body">
+        <p>AST 白名單：整份範例的安全重點</p>
+        <p>工具參數是<strong>模型生成的字串</strong>，等同外部不可信輸入。若寫成 <code>eval(expression)</code>，送進 <code>__import__('os').system(...)</code> 就直接執行了。這裡改用 <code>ast.parse</code> 解成語法樹，只放行白名單上的六種二元運算與兩種一元運算，遇到函式呼叫、變數、屬性存取一律 <code>raise ValueError</code>。</p>
+      </div>
+    </div>
+    <div class="walk-item">
+      <div class="walk-line">L55–L56</div>
+      <div class="walk-body">
+        <p>例外轉成字串回傳，而不是往上拋</p>
+        <p>回傳 <code>f"計算失敗：{exc}"</code>，這個字串會變成 <code>ToolMessage</code> 送回模型，<strong>讓模型有機會自己修正參數重試</strong>。工具失敗不該中斷 agent 迴圈——這是刻意的設計，不是偷懶。</p>
+      </div>
+    </div>
+    <div class="walk-item">
+      <div class="walk-line">L62–L65</div>
+      <div class="walk-body">
+        <p><code>system_prompt</code>：「遇到數學計算請用 safe_calculate，不要心算」</p>
+        <p>這是<strong>建議，不是強制</strong>。模型仍可以選擇不呼叫工具直接心算。要示範這點，把這兩句拿掉再跑一次，小模型很可能就自己算了——而且可能算錯。</p>
+      </div>
+    </div>
+    <div class="walk-item">
+      <div class="walk-line">L69–L72</div>
+      <div class="walk-body">
+        <p><code>agent.invoke({"messages": [...]})</code></p>
+        <p>輸入與輸出的形狀相同，都是 <code>{"messages": [...]}</code>。<code>result["messages"][-1]</code> 取最後一則，就是第 03 節的 <code>[3]</code>。</p>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="num">06</span>這堂課只用了三個參數</h2>
+
+  <p><code>create_agent</code> 在 v1.3.18 共有 15 個參數。這份 Lab 用了三個，其餘對應後續課程主題：</p>
+
+  <div class="tablewrap wide">
+    <table>
+      <thead>
+        <tr><th>參數</th><th>本 Lab</th><th>它控制什麼</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="p used">model</td><td><span class="chip yes">已用</span></td><td>provider:model 字串，決定 model 節點打給誰</td></tr>
+        <tr><td class="p used">tools</td><td><span class="chip yes">已用</span></td><td>有沒有 tools 節點。傳空陣列時圖裡根本不會建立這個節點</td></tr>
+        <tr><td class="p used">system_prompt</td><td><span class="chip yes">已用</span></td><td>每次呼叫模型時置頂的指示</td></tr>
+        <tr><td class="p">middleware</td><td><span class="chip no">未用</span></td><td>在 model／tools 前後插入 hook（before_model、after_model…）</td></tr>
+        <tr><td class="p">response_format</td><td><span class="chip no">未用</span></td><td>結構化輸出：用 Pydantic 模型驗證回應</td></tr>
+        <tr><td class="p">checkpointer</td><td><span class="chip no">未用</span></td><td>記憶：跨次呼叫保留 messages</td></tr>
+        <tr><td class="p">store</td><td><span class="chip no">未用</span></td><td>長期記憶，跨 thread 共用</td></tr>
+        <tr><td class="p">interrupt_before</td><td><span class="chip no">未用</span></td><td>human-in-the-loop：執行工具前先暫停等人同意</td></tr>
+        <tr><td class="p">state_schema</td><td><span class="chip no">未用</span></td><td>在 messages 之外自訂 state 欄位</td></tr>
+        <tr><td class="p">context_schema</td><td><span class="chip no">未用</span></td><td>執行期傳入、不進對話的上下文</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:.85rem;color:var(--ink-mute);margin-top:-.6rem">其餘五個：<code>cache</code>、<code>name</code>、<code>debug</code>、<code>interrupt_after</code>、<code>transformers</code>。</p>
+
+  <h2><span class="num">07</span>課堂上值得現場跑的三個實驗</h2>
+
+  <ol class="labs">
+    <li>
+      <h3>把 <code>tools=[]</code> 清空</h3>
+      <p>模型只能心算，而且圖裡連 <code>tools</code> 節點都不會被建立——LangChain 是有工具才 <code>add_node</code>。用 <code>agent.get_graph().nodes</code> 印出來給學員看。</p>
+      <span class="expect">預期：節點剩 ['__start__', 'model', '__end__']</span>
+    </li>
+    <li>
+      <h3>改問「今天天氣如何」</h3>
+      <p>模型判斷這題不需要計算工具，直接回答。示範「條件邊」真的是條件——不是每次都會走 tools。</p>
+      <span class="expect">預期：只有 2 則訊息，路徑 start → model → end</span>
+    </li>
+    <li>
+      <h3>問一個需要兩步的題目</h3>
+      <p>例如「算 3*4，再把結果乘以 2」。觀察迴圈跑幾輪、模型是一次要求兩個 tool_call 還是分兩輪。不同模型行為不同，這正是可以討論的地方。</p>
+      <span class="expect">預期：訊息數 &gt; 4，model 節點執行 3 次以上</span>
+    </li>
+  </ol>
+
+  <h2><span class="num">08</span>學員大概會撞到的三個錯誤</h2>
+
+  <div class="faults">
+    <div>
+      <span class="err">ModuleNotFoundError: No module named 'dotenv'</span>
+      <p><strong>虛擬環境是空的。</strong>venv 建好不等於裝好套件。先 <code>pip install -r requirements.txt</code>。注意 requirements 目前<strong>沒有列 langchain-ollama</strong>，用 Ollama 的話要另外補裝。</p>
+    </div>
+    <div>
+      <span class="err">UnicodeEncodeError: 'cp950' codec can't encode character '\u202f'</span>
+      <p><strong>Windows 主控台編碼問題，不是 LangChain 的錯。</strong>Agent 其實已經跑完拿到答案，是最後 <code>print()</code> 才炸掉——模型回答裡有 U+202F（窄不斷行空格），cp950 編不出來。解法：腳本開頭加 <code>sys.stdout.reconfigure(encoding="utf-8")</code>，或設環境變數 <code>PYTHONUTF8=1</code>。</p>
+    </div>
+    <div>
+      <span class="err">httpx.ConnectError: [WinError 10061] 無法連線，因為目標電腦拒絕連線</span>
+      <p><strong>Ollama 服務沒在跑。</strong>Windows 上 Ollama 會自己停掉。執行 <code>ollama list</code> 就會把它重新叫起來。用雲端 provider 的學員不會遇到，用本機模型的一定要先提醒。</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>本頁所有圖、訊息軌跡、schema 與錯誤訊息，皆取自 <code>d:\GitHub\LangChain</code> 於 langchain 1.3.18 + ollama nemotron-3-nano:4b 的實際執行結果，非示意內容。模型輸出具隨機性，重跑時文字會不同，但訊息結構與路徑一致。</p>
+  </footer>
+
+</div>
+</body>
+</html>
