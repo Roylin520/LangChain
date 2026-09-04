@@ -19,6 +19,11 @@ def multiply(a: int, b: int) -> int:
     """Multiply two integers."""
     return a * b
 
+@mcp.tool()
+def divide(a: int, b: int) -> float:
+    """Divide two integers."""
+    return a / b
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

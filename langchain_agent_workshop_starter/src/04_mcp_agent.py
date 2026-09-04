@@ -19,7 +19,8 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 load_dotenv()
 
-MODEL_NAME = os.getenv("MODEL_NAME", "openai:gpt-5.4-mini")
+# 預設走本地 Ollama（免 API Key），可在 .env 用 MODEL_NAME 覆寫成雲端模型。
+MODEL_NAME = os.getenv("MODEL_NAME", "ollama:nemotron-3-nano:4b")
 SERVER_PATH = Path(__file__).with_name("mcp_math_server.py")
 
 
@@ -41,7 +42,7 @@ async def main() -> None:
         system_prompt="你是數學助教。計算必須使用 MCP math tools。",
     )
     result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": "請用工具計算 (3 + 5) * 12，並說明工具呼叫邏輯。"}]}
+        {"messages": [{"role": "user", "content": "請用工具計算 (3 + 5) / 12，並說明工具呼叫邏輯。"}]}
     )
     print(result["messages"][-1].content)
 

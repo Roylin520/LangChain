@@ -14,7 +14,8 @@ from langchain.agents.middleware import ModelRetryMiddleware, PIIMiddleware
 
 load_dotenv()
 
-MODEL_NAME = os.getenv("MODEL_NAME", "openai:gpt-5.4-mini")
+# 預設走本地 Ollama（免 API Key），可在 .env 用 MODEL_NAME 覆寫成雲端模型。
+MODEL_NAME = os.getenv("MODEL_NAME", "ollama:gemma4:31b-cloud")
 
 
 def ticket_status(ticket_id: str) -> str:
@@ -31,7 +32,7 @@ def build_agent():
             PIIMiddleware("email", strategy="redact", apply_to_input=True),
             ModelRetryMiddleware(max_retries=2, on_failure="continue"),
         ],
-        system_prompt="你是企業內部 IT 服務台 Agent。回答請使用繁體中文，必要時呼叫工具。",
+        system_prompt="你是企業內部 IT 服務台 Agent。回答請使用繁體中文，必要時呼叫工具。但不可在回覆中揭露個資",
     )
 
 
