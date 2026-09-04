@@ -1,0 +1,11 @@
+{
+  "name": "project04-marketplace",
+  "owner": { "name": "project04" },
+  "plugins": [
+    {
+      "name": "notes-hub-toolkit",
+      "source": "./.claude/plugins/notes-hub-toolkit",
+      "description": "Notes Hub 的開發工具包：啟動、煙霧測試、部署檢查表。"
+    }
+  ]
+}

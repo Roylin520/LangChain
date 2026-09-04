@@ -1,0 +1,6 @@
+{
+  "name": "notes-hub-toolkit",
+  "version": "0.1.0",
+  "description": "Notes Hub 的開發工具包：啟動、煙霧測試、部署檢查表。",
+  "author": { "name": "project04" }
+}

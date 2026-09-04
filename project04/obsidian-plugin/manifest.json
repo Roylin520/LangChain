@@ -1,0 +1,9 @@
+{
+  "id": "notes-hub-sync",
+  "name": "Notes Hub Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "把 vault 裡的 Markdown 同步到自架的 Notes Hub 線上筆記管理系統。",
+  "author": "project04",
+  "isDesktopOnly": false
+}

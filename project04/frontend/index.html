@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notes Hub — Obsidian 線上筆記</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div id="root">
+    <div class="boot">載入中…</div>
+  </div>
+
+  <!-- 本地 vendor：不依賴外網，也不需要 Node 建置 -->
+  <script src="/static/vendor/react.js"></script>
+  <script src="/static/vendor/react-dom.js"></script>
+  <script src="/static/vendor/htm.js"></script>
+  <script src="/static/vendor/marked.js"></script>
+  <script src="/static/vendor/purify.js"></script>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/markdown.js"></script>
+  <script src="/static/js/ui.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

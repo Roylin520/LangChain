@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>經典小蜜蜂 街機大作戰 - Galaga Space Invaders</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="arcade-container">
+    <!-- 頂部導航列 -->
+    <header class="top-navbar">
+      <div class="game-title-bar">👾 GALAGA RETRO</div>
+      <div class="nav-actions">
+        <button id="btnSound" class="nav-btn" title="切換音效">🔊 <span class="nav-text">音效</span></button>
+      </div>
+    </header>
+
+    <!-- 遊戲狀態 HUD (分數、生命值、關卡) -->
+    <div class="hud-bar">
+      <div class="hud-item">
+        <span class="hud-label">1UP SCORE</span>
+        <span id="hudScore" class="hud-val hud-score">000000</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">HIGH SCORE</span>
+        <span id="hudHighScore" class="hud-val hud-high">000000</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">STAGE</span>
+        <span id="hudWave" class="hud-val hud-wave">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">BOMBS</span>
+        <span id="hudBombs" class="hud-val">💣</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">LIVES</span>
+        <div id="hudLives" class="hud-lives">
+          <span class="life-icon">🚀</span>
+          <span class="life-icon">🚀</span>
+          <span class="life-icon">🚀</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 遊戲畫面與 CRT 濾鏡 -->
+    <main class="canvas-wrapper">
+      <canvas id="gameCanvas"></canvas>
+      <div class="crt-overlay"></div>
+
+      <!-- 開始選單覆蓋層 -->
+      <div id="startOverlay" class="overlay">
+        <h1 class="main-title">小蜜蜂大作戰</h1>
+        <div class="subtitle">RETRO SPACE INVADERS</div>
+
+        <div class="info-card">
+          <div class="info-title">🎮 操作說明</div>
+          <p>• <span class="key-badge">←</span> <span class="key-badge">→</span> 或 <span class="key-badge">A</span> <span class="key-badge">D</span>：左右移動戰機</p>
+          <p>• <span class="key-badge">空白鍵</span> / <span class="key-badge">K</span>：發射雷射砲</p>
+          <p>• <span class="key-badge">B</span> / <span class="key-badge">X</span>：全螢幕電磁脈衝炸彈 (EMP)</p>
+          <p>• <span class="key-badge">P</span>：暫停遊戲 / <span class="key-badge">M</span>：靜音切換</p>
+          <p>• 支援滑鼠拖曳與手機觸控操作！</p>
+
+          <div class="enemy-preview">
+            <div class="enemy-item">👑<span>蜂王 200pt</span></div>
+            <div class="enemy-item">🐞<span>突擊 100pt</span></div>
+            <div class="enemy-item">🐝<span>工蜂 50pt</span></div>
+          </div>
+          <p style="color: #00ffff; text-align: center; margin-top: 6px;">⚡ 敵機俯衝時擊破獲得 2X 雙倍分數！</p>
+        </div>
+
+        <button id="btnStart" class="retro-btn">START GAME (進入遊戲)</button>
+      </div>
+
+      <!-- 暫停選單覆蓋層 -->
+      <div id="pauseOverlay" class="overlay hidden">
+        <h2 class="main-title" style="color: #00f0ff;">GAME PAUSED</h2>
+        <p class="subtitle">遊戲已暫停</p>
+        <button id="btnResume" class="retro-btn">RESUME (繼續戰鬥)</button>
+      </div>
+
+      <!-- 遊戲結束覆蓋層 -->
+      <div id="gameoverOverlay" class="overlay hidden">
+        <h2 class="main-title" style="color: #ff2a70;">GAME OVER</h2>
+        <div class="subtitle">戰機已被擊毀</div>
+
+        <div class="result-stats">
+          <div class="stat-row">
+            <span>FINAL SCORE (最終分數)</span>
+            <span id="finalScore" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span>STAGE REACHED (到達關卡)</span>
+            <span id="finalWave" class="stat-val">1</span>
+          </div>
+        </div>
+
+        <button id="btnRestart" class="retro-btn danger">PLAY AGAIN (再戰一局)</button>
+      </div>
+    </main>
+
+    <!-- 行動裝置虛擬按鈕 -->
+    <div class="mobile-controls">
+      <div class="dpad-group">
+        <button id="vLeft" class="touch-btn" aria-label="向左移動">◀</button>
+        <button id="vRight" class="touch-btn" aria-label="向右移動">▶</button>
+      </div>
+      <div class="action-group">
+        <button id="vBomb" class="touch-btn bomb-btn" aria-label="放炸彈">💣</button>
+        <button id="vFire" class="touch-btn fire-btn" aria-label="開火射擊">🔥</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 載入腳本模組 -->
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
+
